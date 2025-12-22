@@ -11,7 +11,7 @@ use rp2040_hal::gpio::{Pin, FunctionSioOutput, PullDown};
 use hal::gpio::bank0::{Gpio0, Gpio1};
 use core::ptr;
 
-use rp2040_scheduler::{create_process, jump_to_process, yield_now, Scheduler, CURRENT, PROCS, SCHEDULER};
+use rp2040_scheduler::{create_process, start_first_process, yield_now, Scheduler, CURRENT, PROCS, SCHEDULER};
 
 #[unsafe(link_section = ".boot2")]
 #[used]
@@ -88,7 +88,7 @@ fn main() -> ! {
             }
         }
         CURRENT = Some(0);
-        jump_to_process(PROCS[0].unwrap().sp);
+        start_first_process(PROCS[0].unwrap().sp);
     }
     
     loop {

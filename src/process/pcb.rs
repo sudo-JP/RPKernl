@@ -20,13 +20,11 @@ impl Clone for ProcessState {
 
 impl Copy for ProcessState {}
 
-#[repr(C, packed)]
+#[repr(C)]
 pub struct PCB {
     pub sp: *mut u32,           // Stack pointer, we on 32-bit arch 
     pub pid: u8, 
     pub state: ProcessState, 
-
-    pub first_run: bool, 
     pub stack_base: *mut u8,    // Where stack allocation starts 
     pub stack_size: usize,      // Stack size, native size 
 }
@@ -37,7 +35,6 @@ impl Clone for PCB {
             sp: self.sp, 
             pid: self.pid,
             state: self.state,
-            first_run: self.first_run,
             stack_base: self.stack_base, 
             stack_size: self.stack_size,
         }

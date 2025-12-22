@@ -35,50 +35,43 @@ fn allocate_stack(size: usize) -> Result<*mut u8, ProcessError> {
     }
 }
 
-#[allow(improper_ctypes_definitions)]
-#[allow(unreachable_code)]
-unsafe extern "C" fn thread_stub(entry: fn(*mut ()) -> !, 
-    arg: *mut ()) -> ! {
-    entry(arg);
-    loop {}
-}
+use crate::arch::process_trampoline;
 
+/// Set up initial stack for a new process
+/// Stack layout (growing down):
+///   [High address]
+///   LR (-> trampoline)
+///   R7, R6, R5 (arg), R4 (entry)
+///   R11, R10, R9, R8 (as R7-R4)
+///   [Low address] <- SP points here
 unsafe fn setup_initial_stack(stack_base: *mut u8, 
     stack_size: usize, entry: fn(*mut ()) -> !, arg: *mut()) -> *mut u32 {
-    let mut sp = (stack_base as usize + stack_size) as *mut u32; 
+    let mut sp = (stack_base as usize + stack_size) as *mut u32;
 
-    // Move down one and write some value
     unsafe {
-        // Build exception frame from top down
-        sp = sp.offset(-1); 
-        *sp = 0x01000000; // xPSR (Thumb bit)
-        
+        // LR - points to trampoline
         sp = sp.offset(-1);
-        *sp = entry as usize as u32; // PC - entry function, not thread_stub!
-        
+        *sp = (process_trampoline as usize as u32) | 1; // Thumb bit
+
+        // R4-R7: R4=entry, R5=arg, R6=0, R7=0
         sp = sp.offset(-1);
-        *sp = 0xFFFFFFFD; // LR - exception return value
-        
+        *sp = 0; // R7
         sp = sp.offset(-1);
-        *sp = 0; // R12
-        
+        *sp = 0; // R6
         sp = sp.offset(-1);
-        *sp = 0; // R3
-        
+        *sp = arg as usize as u32; // R5 = arg
         sp = sp.offset(-1);
-        *sp = 0; // R2
-        
+        *sp = (entry as usize as u32) | 1; // R4 = entry (with Thumb bit)
+
+        // R8-R11 (stored as R4-R7 in push order)
         sp = sp.offset(-1);
-        *sp = 0; // R1
-        
+        *sp = 0; // R11
         sp = sp.offset(-1);
-        *sp = arg as usize as u32; // R0 - argument
-        
-        // Now R4-R11 (for switch_context compatibility)
-        for _ in 0..8 {
-            sp = sp.offset(-1);
-            *sp = 0;
-        }
+        *sp = 0; // R10
+        sp = sp.offset(-1);
+        *sp = 0; // R9
+        sp = sp.offset(-1);
+        *sp = 0; // R8
     }
 
     sp
@@ -104,8 +97,6 @@ pub unsafe fn create_process(stack_size: usize,
             sp: sp,
             pid: id, 
             state: ProcessState::Ready, 
-
-            first_run: true, 
             stack_base: stack_start, 
             stack_size: stack_size, 
         };

@@ -1,5 +1,5 @@
 use core::ptr;
-use crate::{jump_to_process, scheduler::{CURRENT, PROCS, SCHEDULER}, switch_context, PCB};
+use crate::{switch_context, scheduler::{CURRENT, PROCS, SCHEDULER}, PCB};
 
 #[derive(Debug)]
 pub enum SchedulerError {
@@ -18,8 +18,6 @@ pub trait Scheduler {
 pub fn current() -> Option<u8> {
     unsafe { CURRENT }
 }
-
-
 
 pub fn yield_now() -> Result<(), SchedulerError> {
     unsafe {
@@ -41,51 +39,12 @@ pub fn yield_now() -> Result<(), SchedulerError> {
         (*old_pcb).state = crate::ProcessState::Ready;
         (*new_pcb).state = crate::ProcessState::Running;
         
-        // Always use switch_context
-        if (*new_pcb).first_run {
-            (*new_pcb).first_run = false;
-            CURRENT = Some(next_pid);
-            
-            // Save old context
-            core::arch::asm!(
-                "push {{lr}}",
-                "push {{r4-r7}}",
-                "mov r4, r8", "mov r5, r9", "mov r6, r10", "mov r7, r11",
-                "push {{r4-r7}}",
-                "mov r2, sp",
-                "str r2, [{0}]",
-                in(reg) (old_pcb as usize) as *mut *mut u32,
-            );
-            
-            // Jump to new (exception frame)
-            jump_to_process((*new_pcb).sp);
-        } else {
-            CURRENT = Some(next_pid);
-            
-            // Both have been saved before - use inline asm to switch
-            core::arch::asm!(
-                // Save old
-                "push {{lr}}",
-                "push {{r4-r7}}",
-                "mov r4, r8", "mov r5, r9", "mov r6, r10", "mov r7, r11",
-                "push {{r4-r7}}",
-                "mov r2, sp",
-                "str r2, [{old}]",
-                
-                // Load new
-                "ldr r2, [{new}]",
-                "mov sp, r2",
-                
-                // Restore new
-                "pop {{r4-r7}}",
-                "mov r8, r4", "mov r9, r5", "mov r10, r6", "mov r11, r7",
-                "pop {{r4-r7}}",
-                
-                old = in(reg) (old_pcb as usize) as *mut *mut u32,
-                new = in(reg) (new_pcb as usize) as *mut *mut u32,
-            );
-        }
-   
+        // Get pointers/values before switch
+        let old_sp_ptr = ptr::addr_of_mut!((*old_pcb).sp);
+        let new_sp = (*new_pcb).sp;
+        
+        // Single unified context switch - works for all cases!
+        switch_context(old_sp_ptr, new_sp);
     }
     Ok(())
 }
