@@ -1,8 +1,10 @@
 pub mod scheduler;
 pub mod round_robin;
+pub mod sleep;
 
 pub use scheduler::*;
 pub use round_robin::*;
+pub use sleep::*;
 
 use crate::PCB;
 

@@ -1,5 +1,5 @@
 use crate::scheduler::{Scheduler, MAX_PROCS};
-use crate::{SchedulerError, PROCS};
+use crate::{SchedulerError};
 
 pub struct RR {
     queue: [Option<u8>; MAX_PROCS],
@@ -19,7 +19,7 @@ impl RR {
     }
 }
 
-impl Scheduler for RR {
+impl Scheduler<u8> for RR {
     fn enqueue(&mut self, pid: u8) -> Result<(), SchedulerError> {
         if self.size == MAX_PROCS {
             return Err(SchedulerError::NoSpace);

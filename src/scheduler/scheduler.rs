@@ -10,8 +10,8 @@ pub enum SchedulerError {
     NotRunnable, 
 }
 
-pub trait Scheduler {
-    fn enqueue(&mut self, pid: u8) -> Result<(), SchedulerError>; 
+pub trait Scheduler<T> {
+    fn enqueue(&mut self, entry: T) -> Result<(), SchedulerError>; 
     fn dequeue(&mut self) -> Result<u8, SchedulerError>;  
 }
 

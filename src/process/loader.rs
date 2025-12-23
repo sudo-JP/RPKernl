@@ -94,14 +94,6 @@ unsafe fn setup_initial_stack(stack_base: *mut u8,
 pub unsafe fn create_process(stack_size: usize, 
     entry: fn(* mut()) -> !, parg: *mut ()) -> Result<u8, ProcessError> {
     let stack_start = allocate_stack(stack_size)?;
-    unsafe {
-        core::ptr::write_volatile(stack_start, 0xAA);
-        if core::ptr::read_volatile(stack_start) != 0xAA {
-            loop {
-                
-            }
-        }
-    }
 
     unsafe {
         let sp = setup_initial_stack(stack_start, stack_size, entry, parg);

@@ -11,7 +11,7 @@ use rp2040_hal::gpio::{Pin, FunctionSioOutput, PullDown};
 use hal::gpio::bank0::{Gpio0, Gpio1};
 use core::ptr;
 
-use rp2040_scheduler::{create_process, set_alarm, start_first_process, Scheduler, CURRENT, PROCS, SCHEDULER};
+use rp2040_scheduler::{create_process, set_alarm, start_first_process, MemoryLayout, Scheduler, CURRENT, PROCS, QUANTUM, SCHEDULER};
 
 #[unsafe(link_section = ".boot2")]
 #[used]
@@ -53,8 +53,9 @@ fn main() -> ! {
 
     // Alarm 
     let mut alarm = timer.alarm_0().unwrap();
-    let _ = alarm.schedule(100_000u32.micros());
+    let _ = alarm.schedule(QUANTUM);
     alarm.enable_interrupt();
+    set_alarm(alarm); 
 
     // The single-cycle I/O block controls our GPIO pins
     let sio = hal::Sio::new(pac.SIO);
@@ -68,28 +69,25 @@ fn main() -> ! {
     );
 
     // Configure GPIO0 as an output
-
-
     let mut led_pin0 = pins.gpio0.into_push_pull_output(); 
     let mut led_pin1 = pins.gpio1.into_push_pull_output(); 
     let stack_size = 1024; 
 
-    // Debug: Quick blink to show we got this far before starting scheduler
-    for _ in 0..3 {
-        let _ = led_pin0.set_high();
-        let _ = led_pin1.set_high();
-        timer.delay_ms(100);
-        let _ = led_pin0.set_low();
-        let _ = led_pin1.set_low();
-        timer.delay_ms(100);
-    }
-
-    set_alarm(alarm); 
+    let lay = MemoryLayout::new();
     unsafe {
+        // Set up MSP kernel region 
+        core::arch::asm!(
+            "msr msp, {0}",
+            in(reg) (lay.kernel_data.start + lay.kernel_data.size) as u32,
+        );
+
+        // Unmask interrupt 
         pac::NVIC::unmask(pac::Interrupt::TIMER_IRQ_0);
         LED0 = Some(led_pin0);
         LED1 = Some(led_pin1);
         TIMER = Some(timer);
+
+        rp2040_scheduler::register_timer(&timer);
 
         create_process(stack_size, blink_fast, core::ptr::null_mut())
             .unwrap();
@@ -103,6 +101,7 @@ fn main() -> ! {
         start_first_process(PROCS[0].unwrap().sp);
     }
     
+    #[allow(unreachable_code)]
     loop {
         // TODO: This will eventually be your scheduler loop
         /*led_pin1.set_high();

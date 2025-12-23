@@ -4,7 +4,7 @@ use core::cell::RefCell;
 use rp2040_hal::pac::interrupt;
 use core::ptr;
 
-use crate::{switch_context_isr, scheduler::{CURRENT, PROCS, SCHEDULER}, Scheduler, PCB};
+use crate::{scheduler::{CURRENT, PROCS, SCHEDULER}, switch_context_isr, Scheduler, PCB, QUANTUM};
 
 
 static ALARM: Mutex<RefCell<Option<Alarm0>>> = Mutex::new(RefCell::new(None));
@@ -52,7 +52,7 @@ fn TIMER_IRQ_0() {
     cortex_m::interrupt::free(|cs| {
         if let Some(ref mut alarm) = ALARM.borrow(cs).borrow_mut().as_mut() {
             alarm.clear_interrupt();
-            let _ = alarm.schedule(100_000u32.micros()); // 100ms time slice
+            let _ = alarm.schedule(QUANTUM); // 100ms time slice
         }
     });
 
