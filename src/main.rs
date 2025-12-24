@@ -128,11 +128,11 @@ fn blink_fast(_arg: *mut ()) -> ! {
                 .unwrap();
             
             led.set_high().unwrap();
-            //sleep_ms(20).ok();
-            timer.delay_ms(20);
+            sleep_ms(1000).ok();
+            //timer.delay_ms(20);
             led.set_low().unwrap();
-            timer.delay_ms(20);
-            //sleep_ms(20).ok();
+            //timer.delay_ms(20);
+            sleep_ms(1000).ok();
         }
     }
 }
@@ -155,11 +155,11 @@ fn blink_slow(_arg: *mut ()) -> ! {
                 .unwrap();
             
             led.set_high().unwrap();
-            //sleep_ms(20).ok();
-            timer.delay_ms(20);
+            sleep_ms(1000).ok();
+            //timer.delay_ms(20);
             led.set_low().unwrap();
-            timer.delay_ms(20);
-            //sleep_ms(20).ok();
+            //timer.delay_ms(20);
+            sleep_ms(1000).ok();
         }
     }
 }
