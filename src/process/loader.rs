@@ -35,59 +35,70 @@ fn allocate_stack(size: usize) -> Result<*mut u8, ProcessError> {
     }
 }
 
-/// Set up initial stack for a new process
-/// Uses exception frame format so ISR can switch to it via bx lr (EXC_RETURN)
-/// 
-/// Memory layout (address increasing downward in this diagram):
-///   sp+0:  R4         <- SP points here (lowest address)
-///   sp+4:  R5
-///   sp+8:  R6
-///   sp+12: R7
-///   sp+16: R8
-///   sp+20: R9
-///   sp+24: R10
-///   sp+28: R11
-///   sp+32: R0 (arg)   <- exception frame starts here
-///   sp+36: R1
-///   sp+40: R2
-///   sp+44: R3
-///   sp+48: R12
-///   sp+52: LR
-///   sp+56: PC (entry)
-///   sp+60: xPSR       <- (highest address, stack top before push)
-///
+fn process_panic() -> ! {
+    loop {}
+}
+
+/*
+ * Stack structure
+ * High Address (bottom of the stack since it grows downward)
+ *
+ * xPSR
+ * PC
+ * LR 
+ * R12 
+ * R3 
+ * R2
+ * R1
+ * R0
+ * R11 
+ * R10
+ * ...
+ * R4
+ * 
+ * */
 unsafe fn setup_initial_stack(stack_base: *mut u8, 
     stack_size: usize, entry: fn(*mut ()) -> !, arg: *mut()) -> *mut u32 {
-    // Start at top of stack
-    let stack_top = (stack_base as usize + stack_size) as *mut u32;
-    
-    // We'll write 16 words total (8 for callee-saved + 8 for exception frame)
-    // SP will point to bottom (lowest address)
-    let sp = unsafe { stack_top.offset(-16) };
 
+    // SP pointing to top of the stack 
+    let mut sp = (stack_base as usize + stack_size) as *mut u32;
+
+    let xpsr_value: u32 = 0 | 1 << 24;
     unsafe {
-        // Callee-saved registers at sp+0 to sp+28
-        *sp.offset(0) = 0;  // R4
-        *sp.offset(1) = 0;  // R5
-        *sp.offset(2) = 0;  // R6
-        *sp.offset(3) = 0;  // R7
-        *sp.offset(4) = 0;  // R8
-        *sp.offset(5) = 0;  // R9
-        *sp.offset(6) = 0;  // R10
-        *sp.offset(7) = 0;  // R11
+        // xPSR 
+        *sp = xpsr_value;
+        sp = sp.offset(-1);
+
+        // PC 
+        *sp = (entry as u32) | 1; 
+        sp = sp.offset(-1);
+
+        // LR 
+        *sp = process_panic as *const () as usize as u32;
+        sp = sp.offset(-1);
+
+        // R12, R3, R2, R1
+        for _ in 0..4 {
+            *sp = 0; 
+            sp = sp.offset(-1);
+        }
+
+        // R0, the args
+        *sp = arg as u32;
+        sp = sp.offset(-1);
         
-        // Exception frame at sp+32 to sp+60
-        *sp.offset(8) = arg as usize as u32;  // R0 = arg
-        *sp.offset(9) = 0;   // R1
-        *sp.offset(10) = 0;  // R2
-        *sp.offset(11) = 0;  // R3
-        *sp.offset(12) = 0;  // R12
-        *sp.offset(13) = 0xFFFFFFFF;  // LR (dummy)
-        *sp.offset(14) = (entry as usize as u32) | 1;  // PC
-        *sp.offset(15) = 0x01000000;  // xPSR (Thumb bit)
+        // R11 to R4 
+        for _ in 0..8 {
+            *sp = 0; 
+            sp = sp.offset(-1);
+        }
+
+        // SP now points below R4
+        // Set it back to R4 
+        sp = sp.offset(1);
     }
 
-    sp
+    sp 
 }
 
 

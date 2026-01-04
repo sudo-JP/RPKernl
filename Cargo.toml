@@ -29,6 +29,7 @@ panic-halt = "0.2"
 # USB for serial output
 usb-device = "0.3"
 usbd-serial = "0.2"
+rtt-target = "0.6.2"
 
 [target.'cfg( target_arch = "arm" )'.dependencies]
 embassy-executor = {version = "0.5", features = ["arch-cortex-m", "executor-thread"]}
