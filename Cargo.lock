@@ -381,6 +381,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "jpkernel"
+version = "0.1.0"
+dependencies = [
+ "cortex-m",
+ "cortex-m-rt",
+ "critical-section",
+ "defmt 0.3.100",
+ "defmt-rtt",
+ "embassy-executor",
+ "embedded-alloc",
+ "embedded-hal 0.2.7",
+ "embedded-hal 1.0.0",
+ "embedded-hal-async",
+ "embedded-io 0.7.1",
+ "panic-halt",
+ "rp2040-boot2",
+ "rp2040-hal",
+ "rtt-target",
+ "usb-device",
+ "usbd-serial",
+]
+
+[[package]]
 name = "linked_list_allocator"
 version = "0.10.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -579,29 +602,6 @@ dependencies = [
  "cortex-m-rt",
  "critical-section",
  "vcell",
-]
-
-[[package]]
-name = "rp2040_scheduler"
-version = "0.1.0"
-dependencies = [
- "cortex-m",
- "cortex-m-rt",
- "critical-section",
- "defmt 0.3.100",
- "defmt-rtt",
- "embassy-executor",
- "embedded-alloc",
- "embedded-hal 0.2.7",
- "embedded-hal 1.0.0",
- "embedded-hal-async",
- "embedded-io 0.7.1",
- "panic-halt",
- "rp2040-boot2",
- "rp2040-hal",
- "rtt-target",
- "usb-device",
- "usbd-serial",
 ]
 
 [[package]]
