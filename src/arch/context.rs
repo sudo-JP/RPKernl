@@ -17,10 +17,17 @@ extern "C" fn get_new_sp() -> *const u32 {
             }
         }
 
-        // Get new process
-        let next_pid = (*sched).dequeue().ok().unwrap();
-
         let old_pcb: *mut PCB = PROCS[old_pid as usize].as_mut().unwrap();
+        (*old_pcb).sp = psp;
+
+        // Get new process
+        let next_pid = match (*sched).dequeue() {
+            Ok(pid) => pid, 
+            Err(_) => { 
+                return psp as *const u32;
+            }
+        };
+
         match (*old_pcb).state {
             crate::ProcessState::Ready | crate::ProcessState::Running => {
                 let _ = (*sched).enqueue(old_pid);
@@ -28,7 +35,6 @@ extern "C" fn get_new_sp() -> *const u32 {
             _ => {},
         }
 
-        (*old_pcb).sp = psp;
         
         if old_pid == next_pid {
             return (*old_pcb).sp as *const u32;
